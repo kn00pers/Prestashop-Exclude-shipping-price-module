@@ -70,7 +70,7 @@ The module calculates the shipping cost using the following logic:
 ## ## Developer Info & License
 
 * **Author:** [Astrodesign.pl](https://astrodesign.pl)
-* **Version:** 1.1.0
+* **Version:** 1.1.1
 * **License:** Free and Open Source.
 
 > **Disclaimer:** This module is provided "as is" for the community. PrestaShop modules are often expensive; this project aims to provide a free, high-quality alternative for shipping management. **Not for resale.**
