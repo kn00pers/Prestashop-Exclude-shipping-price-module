@@ -12,7 +12,7 @@ class Excludeshipping extends Module
     {
         $this->name = 'excludeshipping';
         $this->tab = 'Astrodesign.pl - excludeshipping';
-        $this->version = '1.1.0';
+        $this->version = '1.1.1';
         $this->author = 'astrodesign.pl';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
@@ -34,16 +34,14 @@ class Excludeshipping extends Module
     {
         return parent::install()
             && $this->registerHook('actionPackageShippingCost')
-            && $this->installDb()
-            && $this->installOverrideCart();
+            && $this->installDb();
     }
 
     public function uninstall()
     {
         return parent::uninstall()
             && $this->uninstallDb()
-            && Configuration::deleteByName('EXCLUDESHIPPING_SCHEMA_1_1_0')
-            && $this->uninstallOverrideCart();
+            && Configuration::deleteByName('EXCLUDESHIPPING_SCHEMA_1_1_0');
     }
 
     protected function installDb()
@@ -80,93 +78,6 @@ class Excludeshipping extends Module
     {
         $sql = 'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'excludeshipping_rules`';
         return Db::getInstance()->execute($sql);
-    }
-
-    protected function installOverrideCart()
-    {
-        $overrideDir = _PS_OVERRIDE_DIR_ . 'classes/';
-        $overrideFile = $overrideDir . 'Cart.php';
-
-        if (!is_dir($overrideDir)) {
-            if (!@mkdir($overrideDir, 0755, true) && !is_dir($overrideDir)) {
-                return false;
-            }
-        }
-
-        if (file_exists($overrideFile)) {
-            $content = file_get_contents($overrideFile);
-            if (strpos($content, 'excludeshipping') !== false) {
-                return true;
-            }
-            return true;
-        }
-
-        $overrideContent = <<<'PHP'
-<?php
-
-class Cart extends CartCore
-{
-    public function getPackageShippingCost(
-        $id_carrier = null,
-        $use_tax = true,
-        ?Country $default_country = null,
-        $product_list = null,
-        $id_zone = null,
-        bool $keepOrderPrices = false
-    ) {
-        $base_cost = parent::getPackageShippingCost(
-            $id_carrier,
-            $use_tax,
-            $default_country,
-            $product_list,
-            $id_zone,
-            $keepOrderPrices
-        );
-
-        $module = \Module::getInstanceByName('excludeshipping');
-        if (!$module || !method_exists($module, 'getMaxShippingCostForProducts')) {
-            return $base_cost;
-        }
-
-        $products = $product_list ?: $this->getProducts();
-
-        $max_product_cost = $module->getMaxShippingCostForProducts(
-            $products,
-            $id_carrier !== null ? (int) $id_carrier : null
-        );
-
-        return max((float) $base_cost, (float) $max_product_cost);
-    }
-}
-
-PHP;
-
-        if (file_put_contents($overrideFile, $overrideContent) === false) {
-            return false;
-        }
-
-        if (file_exists(_PS_CACHE_DIR_ . 'class_index.php')) {
-            @unlink(_PS_CACHE_DIR_ . 'class_index.php');
-        }
-
-        return true;
-    }
-
-    protected function uninstallOverrideCart()
-    {
-        $overrideFile = _PS_OVERRIDE_DIR_ . 'classes/Cart.php';
-
-        if (file_exists($overrideFile)) {
-            $content = file_get_contents($overrideFile);
-            if (strpos($content, 'excludeshipping') !== false) {
-                @unlink($overrideFile);
-                if (file_exists(_PS_CACHE_DIR_ . 'class_index.php')) {
-                    @unlink(_PS_CACHE_DIR_ . 'class_index.php');
-                }
-            }
-        }
-
-        return true;
     }
 
     public function getContent()
